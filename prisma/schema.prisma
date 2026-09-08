@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  PIX
+  BOLETO
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+// Espelha auth.users do Supabase: o `id` é o mesmo UUID gerado pelo Supabase Auth,
+// não geramos nem armazenamos senha aqui.
+model User {
+  id        String    @id
+  email     String    @unique
+  name      String?
+  role      Role      @default(CUSTOMER)
+  addresses Address[]
+  carts     Cart[]
+  orders    Order[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  recipient  String
+  street     String
+  number     String
+  complement String?
+  district   String
+  city       String
+  state      String
+  postalCode String
+  country    String   @default("BR")
+  orders     Order[]
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Sem tela de admin pra isso por enquanto: as categorias são inseridas
+// via script de seed (prisma/seed-categories.mjs), não por CRUD no painel.
+model Category {
+  id       String    @id @default(uuid())
+  slug     String    @unique
+  name     String
+  products Product[]
+}
+
+model Product {
+  id          String           @id @default(uuid())
+  slug        String           @unique
+  name        String
+  description String?
+  // URL pública do arquivo no bucket do Supabase Storage.
+  imageUrl    String?
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId  String?
+  variants    ProductVariant[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([categoryId])
+}
+
+// Preços em centavos (Int), nunca em float: evita erro de arredondamento
+// e casa com o formato que a própria Stripe usa (amount em cents).
+model ProductVariant {
+  id           String      @id @default(uuid())
+  product      Product     @relation(fields: [productId], references: [id])
+  productId    String
+  name         String
+  priceCents   Int
+  stock        Int         @default(0)
+  // Usado para concorrência otimista: incrementa a cada baixa de estoque,
+  // evitando vender a última unidade duas vezes em pedidos simultâneos.
+  stockVersion Int         @default(0)
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+
+  @@unique([productId, name])
+  @@index([productId])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  user      User       @relation(fields: [userId], references: [id])
+  // @unique: um usuário tem no máximo um carrinho — é isso que permite
+  // usar upsert (por userId) em vez de "buscar, senão criar" em duas etapas.
+  userId    String     @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String         @id @default(uuid())
+  cart      Cart           @relation(fields: [cartId], references: [id])
+  cartId    String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  variantId String
+  quantity  Int
+
+  @@unique([cartId, variantId])
+}
+
+model Order {
+  id              String             @id @default(uuid())
+  // Gerada pelo cliente (uma vez, ao abrir o checkout) e enviada em todo
+  // retry de "finalizar compra". A constraint @unique impede pedido duplicado
+  // se o usuário clicar 2x ou a requisição for reenviada.
+  idempotencyKey  String             @unique
+  user            User               @relation(fields: [userId], references: [id])
+  userId          String
+  shippingAddress Address            @relation(fields: [addressId], references: [id])
+  addressId       String
+  status          OrderStatus        @default(PENDING)
+  totalCents      Int
+  items           OrderItem[]
+  payments        Payment[]
+  statusHistory   OrderStatusEvent[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Snapshot do produto/preço no momento da compra — nunca referenciar
+// o preço atual do ProductVariant aqui, ele pode mudar depois.
+model OrderItem {
+  id             String         @id @default(uuid())
+  order          Order          @relation(fields: [orderId], references: [id])
+  orderId        String
+  variant        ProductVariant @relation(fields: [variantId], references: [id])
+  variantId      String
+  productName    String
+  variantName    String
+  unitPriceCents Int
+  quantity       Int
+
+  @@index([orderId])
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  order                 Order         @relation(fields: [orderId], references: [id])
+  orderId               String
+  method                PaymentMethod
+  status                PaymentStatus @default(PENDING)
+  amountCents           Int
+  // Id do PaymentIntent/charge da Stripe. @unique garante que processarmos
+  // o mesmo evento de webhook só uma vez, mesmo se a Stripe reenviar.
+  providerPaymentIntent String        @unique
+  rawWebhookPayload     Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([orderId])
+}
+
+// Auditoria: cada mudança de status vira um evento, nunca sobrescrevemos.
+model OrderStatusEvent {
+  id        String      @id @default(uuid())
+  order     Order       @relation(fields: [orderId], references: [id])
+  orderId   String
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+}

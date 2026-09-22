@@ -43,6 +43,8 @@ export default async function ProdutosPage() {
                 <th className="px-6 py-3 font-medium">Nome</th>
                 <th className="px-6 py-3 font-medium">Slug</th>
                 <th className="px-6 py-3 font-medium">Preço</th>
+                <th className="px-6 py-3 font-medium">Estoque</th>
+                <th className="px-6 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -72,6 +74,24 @@ export default async function ProdutosPage() {
                       currency: "BRL",
                     }).format(product.variants[0].priceCents / 100)
                     : "-"}
+                  </td>
+                  <td className="px-6 py-3">
+                    {(() => {
+                      const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+                      return (
+                        <span className={totalStock === 0 ? "font-medium text-red-700" : ""}>
+                          {totalStock}
+                        </span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-6 py-3 text-right">
+                    <Link
+                      href={`/admin/produtos/${product.id}/editar`}
+                      className="text-[#5A4738] hover:underline"
+                    >
+                      Editar
+                    </Link>
                   </td>
                 </tr>
               ))}

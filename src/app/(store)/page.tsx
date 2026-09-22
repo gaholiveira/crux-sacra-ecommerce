@@ -71,12 +71,19 @@ export default async function HomePage() {
           Encontre o que procura por tipo de produto.
         </p>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        {/* flex-wrap + justify-center em vez de grid: quando a última linha
+            não fecha (ex: 6 categorias em 4 colunas), os itens sobrando ficam
+            centralizados em vez de grudados à esquerda com espaço vazio do
+            lado — Grid não tem como fazer isso nativamente. As larguras em
+            calc() reproduzem "2 colunas no mobile, 4 no desktop" descontando
+            o gap, então o resultado visual é idêntico ao grid quando a linha
+            fecha certinho. */}
+        <div className="flex flex-wrap justify-center gap-4 md:gap-6">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`/categorias/${category.slug}`}
-              className="relative flex h-[140px] items-end overflow-hidden rounded-2xl bg-[#F0E6D4] md:h-[220px]"
+              className="relative flex h-[140px] w-[calc(50%-0.5rem)] items-end overflow-hidden rounded-2xl bg-[#F0E6D4] md:h-[220px] md:w-[calc(25%-1.125rem)]"
             >
               <span className="w-full bg-[#3A312B]/70 p-2.5 text-center text-xs font-semibold text-white md:p-3.5 md:text-sm">
                 {category.name}

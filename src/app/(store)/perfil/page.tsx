@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getcurrentUser } from "@/lib/auth/dal";
 import { prisma } from "@/lib/prisma";
+import { updateName } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -46,14 +47,32 @@ export default async function PerfilPage() {
 
       <section className="mt-8 rounded-xl border border-[#D8CDBC] bg-white p-6">
         <h2 className="text-lg font-semibold">Dados da conta</h2>
-        <div className="mt-3 flex flex-col gap-1 text-sm text-[#6E6255]">
-          <span>
-            <strong className="text-[#3A312B]">Nome:</strong> {user.name}
-          </span>
-          <span>
-            <strong className="text-[#3A312B]">E-mail:</strong> {user.email}
-          </span>
-        </div>
+        <form action={updateName} className="mt-4 flex flex-col gap-1.5 max-w-sm">
+          <label htmlFor="name" className="text-sm font-medium text-[#3A312B]">
+            Nome completo
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="name"
+              name="name"
+              defaultValue={user.name ?? ""}
+              placeholder="Seu nome completo"
+              className="w-full rounded-md border border-[#D8CDBC] px-3 py-2 text-sm outline-none focus:border-[#5A4738] focus:ring-[3px] focus:ring-[#5A473859]"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded-md bg-[#5A4738] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4A3A2D]"
+            >
+              Salvar
+            </button>
+          </div>
+          {/* Nome e sobrenome separados (ex: "Gabriel Oliveira") ajudam o
+              checkout da Mercado Pago a passar os dados certos pro antifraude. */}
+          <span className="text-xs text-[#6E6255]">Use nome e sobrenome.</span>
+        </form>
+        <p className="mt-4 text-sm text-[#6E6255]">
+          <strong className="text-[#3A312B]">E-mail:</strong> {user.email}
+        </p>
       </section>
 
       <section className="mt-6 rounded-xl border border-[#D8CDBC] bg-white p-6">

@@ -11,6 +11,9 @@ const categories = [
   { slug: "dezena-para-carros", name: "Dezena Para Carros" },
   { slug: "pulseiras", name: "Pulseiras" },
   { slug: "chaveiros", name: "Chaveiros" },
+  // Categoria especial: tratada diferente na página (src/app/(store)/categorias/[slug]/page.tsx)
+  // — mostra galeria de exemplos + botão de WhatsApp, não a grade de produtos comum.
+  { slug: "personalizado", name: "Personalizado" },
 ];
 
 for (const category of categories) {

@@ -81,6 +81,17 @@ model Category {
   products Product[]
 }
 
+// Fotos de referência para a categoria "Personalizado" — não são produtos:
+// sem preço, sem estoque, nunca passam por carrinho/pedido. Servem só de
+// inspiração visual na página de personalização. Gerenciadas por script
+// (scripts/add-customization-example.mjs), não por tela de admin.
+model CustomizationExample {
+  id        String   @id @default(uuid())
+  imageUrl  String
+  caption   String?
+  createdAt DateTime @default(now())
+}
+
 model Product {
   id          String           @id @default(uuid())
   slug        String           @unique
@@ -183,9 +194,13 @@ model Payment {
   method                PaymentMethod
   status                PaymentStatus @default(PENDING)
   amountCents           Int
-  // Id do PaymentIntent/charge da Stripe. @unique garante que processarmos
-  // o mesmo evento de webhook só uma vez, mesmo se a Stripe reenviar.
+  // Id do pagamento na Mercado Pago. @unique garante que processarmos o
+  // mesmo evento de webhook só uma vez, mesmo se a Mercado Pago reenviar.
   providerPaymentIntent String        @unique
+  // Id do pedido (Order) na Mercado Pago — o que aparece no painel deles e
+  // no "Iniciar medição" da checklist de aprovação. Diferente do payment id
+  // acima: um Order pode, em teoria, ter mais de um payment.
+  providerOrderId       String?
   rawWebhookPayload     Json?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt

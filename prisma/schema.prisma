@@ -161,6 +161,11 @@ model Order {
   addressId       String
   status          OrderStatus        @default(PENDING)
   totalCents      Int
+  // Preenchidos manualmente pelo admin ao marcar como enviado — sem
+  // integração com transportadora por enquanto, é só registro pro cliente
+  // conseguir rastrear.
+  carrier         String?
+  trackingCode    String?
   items           OrderItem[]
   payments        Payment[]
   statusHistory   OrderStatusEvent[]

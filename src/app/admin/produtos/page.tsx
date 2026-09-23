@@ -15,7 +15,7 @@ export default async function ProdutosPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Produtos</h1>
           <p className="mt-1 text-sm text-[#6E6255]">
@@ -36,67 +36,71 @@ export default async function ProdutosPage() {
             Nenhum produto cadastrado ainda.
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#D8CDBC] text-left text-[#6E6255]">
-                <th className="px-6 py-3 font-medium">Imagem</th>
-                <th className="px-6 py-3 font-medium">Nome</th>
-                <th className="px-6 py-3 font-medium">Slug</th>
-                <th className="px-6 py-3 font-medium">Preço</th>
-                <th className="px-6 py-3 font-medium">Estoque</th>
-                <th className="px-6 py-3 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-b border-[#D8CDBC] last:border-0">
-                  <td className="px-6 py-3">
-                    {product.imageUrl ? (
-                      <Image
-                        src={product.imageUrl}
-                        alt={product.name}
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-md bg-[#F0E6D4]" />
-                    )}
-                  </td>
-                  <td className="px-6 py-3 font-medium">{product.name}</td>
-                  <td className="px-6 py-3 font-mono text-xs text-[#6E6255]">
-                    {product.slug}
-                  </td>
-                  <td className="px-6 py-3">
-                    {product.variants[0]
-                    ? new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(product.variants[0].priceCents / 100)
-                    : "-"}
-                  </td>
-                  <td className="px-6 py-3">
-                    {(() => {
-                      const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
-                      return (
-                        <span className={totalStock === 0 ? "font-medium text-red-700" : ""}>
-                          {totalStock}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-6 py-3 text-right">
-                    <Link
-                      href={`/admin/produtos/${product.id}/editar`}
-                      className="text-[#5A4738] hover:underline"
-                    >
-                      Editar
-                    </Link>
-                  </td>
+          // overflow-x-auto: numa tela estreita, a tabela rola de lado em vez
+          // de cortar colunas ou espremer o layout inteiro.
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-[#D8CDBC] text-left text-[#6E6255]">
+                  <th className="px-6 py-3 font-medium">Imagem</th>
+                  <th className="px-6 py-3 font-medium">Nome</th>
+                  <th className="px-6 py-3 font-medium">Slug</th>
+                  <th className="px-6 py-3 font-medium">Preço</th>
+                  <th className="px-6 py-3 font-medium">Estoque</th>
+                  <th className="px-6 py-3 font-medium"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {products.map((product) => (
+                  <tr key={product.id} className="border-b border-[#D8CDBC] last:border-0">
+                    <td className="px-6 py-3">
+                      {product.imageUrl ? (
+                        <Image
+                          src={product.imageUrl}
+                          alt={product.name}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-md bg-[#F0E6D4]" />
+                      )}
+                    </td>
+                    <td className="px-6 py-3 font-medium">{product.name}</td>
+                    <td className="px-6 py-3 font-mono text-xs text-[#6E6255]">
+                      {product.slug}
+                    </td>
+                    <td className="px-6 py-3">
+                      {product.variants[0]
+                      ? new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      }).format(product.variants[0].priceCents / 100)
+                      : "-"}
+                    </td>
+                    <td className="px-6 py-3">
+                      {(() => {
+                        const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+                        return (
+                          <span className={totalStock === 0 ? "font-medium text-red-700" : ""}>
+                            {totalStock}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <Link
+                        href={`/admin/produtos/${product.id}/editar`}
+                        className="text-[#5A4738] hover:underline"
+                      >
+                        Editar
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

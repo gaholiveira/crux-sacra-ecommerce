@@ -125,7 +125,7 @@ export default async function PerfilPage() {
                     {formatDate(order.createdAt)} · {order.items.length} item(ns)
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="rounded-full bg-[#F0E6D4] px-3 py-1 text-xs font-medium text-[#5A4738]">
                     {statusLabels[order.status] ?? order.status}
                   </span>

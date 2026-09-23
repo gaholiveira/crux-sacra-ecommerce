@@ -106,6 +106,21 @@ export default async function PedidoPage({
         </div>
 
         <div className="flex w-full flex-col gap-4 md:w-80 md:shrink-0">
+          {order.trackingCode && (
+            <div className="rounded-xl border border-[#D8CDBC] bg-white p-5">
+              <h2 className="text-sm font-semibold">Rastreio</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#6E6255]">
+                {order.carrier && (
+                  <>
+                    {order.carrier}
+                    <br />
+                  </>
+                )}
+                {order.trackingCode}
+              </p>
+            </div>
+          )}
+
           <div className="rounded-xl border border-[#D8CDBC] bg-white p-5">
             <h2 className="text-sm font-semibold">Endereço de entrega</h2>
             <p className="mt-2 text-sm leading-relaxed text-[#6E6255]">

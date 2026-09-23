@@ -39,10 +39,25 @@ function CloseIcon() {
   );
 }
 
-function AuthArea({ user, onNavigate }: { user: { name: string | null } | null; onNavigate?: () => void }) {
+function AuthArea({
+  user,
+  onNavigate,
+}: {
+  user: { name: string | null; role: string } | null;
+  onNavigate?: () => void;
+}) {
   if (user) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
+        {user.role === "ADMIN" && (
+          <Link
+            href="/admin/produtos"
+            onClick={onNavigate}
+            className="text-sm text-[#6E6255] hover:text-[#3A312B] hover:underline"
+          >
+            Admin
+          </Link>
+        )}
         <Link
           href="/perfil"
           onClick={onNavigate}
@@ -79,7 +94,7 @@ export function Header({
   user,
   cartCount,
 }: {
-  user: { name: string | null } | null;
+  user: { name: string | null; role: string } | null;
   cartCount: number;
 }) {
   const [open, setOpen] = useState(false);

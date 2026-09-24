@@ -53,10 +53,25 @@ export async function POST(request: NextRequest) {
   // Nunca confia no status que veio dentro do corpo da notificação — ele só
   // avisa "algo mudou nesse pedido". Busca o pedido de verdade na API antes
   // de decidir qualquer coisa.
-  const mpOrder = await getOrderClient().get({ id: body.data.id });
-  const result = extractPaymentResult(mpOrder);
-  if (result) {
-    await applyPaymentResult(result);
+  //
+  // Envolvido em try/catch de propósito: um id que não existe de verdade
+  // (ex: o payload de exemplo do "Simular notificação" do painel, ou um
+  // pedido já removido) faz a API da Mercado Pago responder 400/404 — isso
+  // não é um erro nosso pra corrigir, é um evento que não tem o que
+  // processar. Sem isso, a exceção estoura sem tratamento e a Mercado
+  // Pago reenvia pra sempre um payload que nunca vai dar certo.
+  try {
+    const mpOrder = await getOrderClient().get({ id: body.data.id });
+    const result = extractPaymentResult(mpOrder);
+    if (result) {
+      await applyPaymentResult(result);
+    }
+  } catch (error) {
+    console.error("Webhook: não foi possível reconciliar o pedido", {
+      type: body.type,
+      dataId: body.data.id,
+      error,
+    });
   }
 
   return NextResponse.json({ received: true });

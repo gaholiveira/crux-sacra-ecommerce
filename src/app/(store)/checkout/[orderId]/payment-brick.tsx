@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
+import { Skeleton } from "@/components/skeleton";
 
 // O SDK da Mercado Pago é carregado via <script> global (não é um pacote
 // npm para o navegador) — por isso declaramos o formato mínimo que
@@ -38,7 +39,12 @@ export function PaymentBrick({
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [sdkReady, setSdkReady] = useState(false);
+  // onReady do Brick, não do <Script>: o script pode ter carregado e o Brick
+  // ainda estar montando seu próprio formulário por dentro — só some o
+  // skeleton quando o formulário de verdade está pronto pra uso.
+  const [brickReady, setBrickReady] = useState(false);
   const [pixData, setPixData] = useState<PixData | null>(null);
+  const [pixCancelled, setPixCancelled] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Presença da chave pública é uma condição estática (não muda entre
@@ -63,9 +69,25 @@ export function PaymentBrick({
           // "bankTransfer" é como a Mercado Pago chama o Pix no Brick.
           bankTransfer: "all",
         },
+        // Sem isso o Brick renderiza no azul padrão da Mercado Pago, que
+        // destoa do resto do site — customVariables é o único jeito
+        // suportado de tematizar (não dá pra sobrescrever via CSS externo,
+        // o Brick roda dentro de um iframe).
+        visual: {
+          style: {
+            customVariables: {
+              baseColor: "#5A4738",
+              buttonTextColor: "#FFFFFF",
+              formBackgroundColor: "#FFFFFF",
+              inputBackgroundColor: "#FFFFFF",
+              borderRadiusMedium: "6px",
+              borderRadiusLarge: "8px",
+            },
+          },
+        },
       },
       callbacks: {
-        onReady: () => {},
+        onReady: () => setBrickReady(true),
         onError: (error: unknown) => {
           console.error("Payment Brick error:", error);
           setErrorMessage("Não foi possível carregar o formulário de pagamento.");
@@ -126,6 +148,34 @@ export function PaymentBrick({
     };
   }, [sdkReady, publicKey, amount, payerEmail, orderId, router]);
 
+  // Enquanto o QR code do Pix está na tela, pergunta periodicamente se o
+  // pagamento já caiu — o webhook cobre isso quando o site estiver num
+  // domínio público, mas em dev local (e como reforço mesmo em produção)
+  // o cliente não pode ficar sem nenhum feedback até fechar a aba.
+  useEffect(() => {
+    if (!pixData) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/mercadopago/order-status?orderId=${orderId}`);
+        const data: { status?: string } = await res.json();
+
+        if (data.status === "PAID") {
+          clearInterval(interval);
+          router.push(`/pedidos/${orderId}`);
+        } else if (data.status === "CANCELLED") {
+          clearInterval(interval);
+          setPixCancelled(true);
+        }
+      } catch {
+        // Falha pontual de rede — tenta de novo no próximo ciclo, não
+        // interrompe a espera por causa de uma requisição perdida.
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [pixData, orderId, router]);
+
   if (!publicKey) {
     return (
       <p className="text-sm text-red-700">
@@ -152,9 +202,16 @@ export function PaymentBrick({
           onClick={(e) => e.currentTarget.select()}
           className="w-full rounded-md border border-[#D8CDBC] p-2 text-xs"
         />
-        <p className="text-sm text-[#6E6255]">
-          Assim que o pagamento for confirmado, o status do pedido atualiza automaticamente.
-        </p>
+        {pixCancelled ? (
+          <p className="text-sm font-medium text-red-700">
+            Este pagamento foi cancelado. Volte ao carrinho para tentar novamente.
+          </p>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-[#6E6255]">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#5A4738]" />
+            Verificando pagamento automaticamente...
+          </div>
+        )}
       </div>
     );
   }
@@ -163,7 +220,22 @@ export function PaymentBrick({
     <>
       <Script src="https://sdk.mercadopago.com/js/v2" onReady={() => setSdkReady(true)} />
       {errorMessage && <p className="mb-3 text-sm text-red-700">{errorMessage}</p>}
-      <div id="payment-brick-container" ref={containerRef} />
+      {!brickReady && (
+        <div className="flex flex-col gap-4 rounded-xl border border-[#D8CDBC] bg-white p-6">
+          <Skeleton className="h-6 w-40" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-16" />
+          ))}
+          <Skeleton className="h-12 rounded-lg" />
+        </div>
+      )}
+      {/* Fica sempre montado (o Brick precisa desse id no DOM pra se anexar),
+          só escondido enquanto o skeleton acima está visível. */}
+      <div
+        id="payment-brick-container"
+        ref={containerRef}
+        className={brickReady ? "" : "hidden"}
+      />
     </>
   );
 }

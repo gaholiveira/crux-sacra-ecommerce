@@ -19,12 +19,20 @@ const productSchema = z.object({
   categoryId: z.string().trim().min(1, "Selecione uma categoria"),
 });
 
-const variantSchema = z.object({
-  id: z.string().trim().min(1),
-  name: z.string().trim().min(1, "Informe o nome da variante"),
-  price: z.coerce.number().nonnegative("Preço não pode ser negativo"),
-  stock: z.coerce.number().int("Estoque deve ser um número inteiro").nonnegative("Estoque não pode ser negativo"),
-});
+const variantSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    name: z.string().trim().min(1, "Informe o nome da variante"),
+    price: z.coerce.number().nonnegative("Preço não pode ser negativo"),
+    // Vazio vira undefined (sem promoção) — string vazia coagida por
+    // z.coerce.number() daria 0, o que pareceria uma promoção de "de graça".
+    compareAtPrice: z.coerce.number().nonnegative("Preço original não pode ser negativo").optional(),
+    stock: z.coerce.number().int("Estoque deve ser um número inteiro").nonnegative("Estoque não pode ser negativo"),
+  })
+  .refine((data) => data.compareAtPrice === undefined || data.compareAtPrice > data.price, {
+    message: "Preço original deve ser maior que o preço atual",
+    path: ["compareAtPrice"],
+  });
 
 async function uploadProductImage(image: File): Promise<string> {
   const supabaseAdmin = getSupabaseAdmin();
@@ -61,13 +69,34 @@ export async function updateProduct(productId: string, formData: FormData) {
       id,
       name: formData.get(`name-${id}`),
       price: formData.get(`price-${id}`),
+      compareAtPrice: formData.get(`compareAtPrice-${id}`) || undefined,
       stock: formData.get(`stock-${id}`),
     }),
   );
 
-  const image = formData.get("image");
-  const imageUrl =
-    image instanceof File && image.size > 0 ? await uploadProductImage(image) : undefined;
+  // Cada slot (0, 1, 2) pode: ganhar um arquivo novo (substitui), ser
+  // marcado pra remover (esvazia), ou nenhum dos dois (mantém a imagem que
+  // já estava naquela posição). Slots vazios no final são descartados —
+  // por isso o array final pode ficar menor que 3.
+  const currentProduct = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { imageUrls: true },
+  });
+  const currentImages = currentProduct?.imageUrls ?? [];
+
+  const slots = await Promise.all(
+    [0, 1, 2].map(async (i) => {
+      const file = formData.get(`image-${i}`);
+      if (file instanceof File && file.size > 0) {
+        return uploadProductImage(file);
+      }
+      if (formData.get(`removeImage-${i}`) === "on") {
+        return null;
+      }
+      return currentImages[i] ?? null;
+    }),
+  );
+  const imageUrls = slots.filter((url): url is string => url !== null);
 
   const currentVariants = await prisma.productVariant.findMany({
     where: { id: { in: variantIds } },
@@ -83,7 +112,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         slug: parsed.slug,
         description: parsed.description,
         categoryId: parsed.categoryId,
-        ...(imageUrl ? { imageUrl } : {}),
+        imageUrls,
       },
     }),
     ...variants.map((variant) => {
@@ -96,6 +125,8 @@ export async function updateProduct(productId: string, formData: FormData) {
           // 4989.999999999999 em JS) — nunca guarde dinheiro sem arredondar
           // pra inteiro antes de salvar.
           priceCents: Math.round(variant.price * 100),
+          compareAtPriceCents:
+            variant.compareAtPrice !== undefined ? Math.round(variant.compareAtPrice * 100) : null,
           stock: variant.stock,
           // Só incrementa a versão quando o estoque de fato muda — invalida
           // qualquer checkout que já tinha lido o valor antigo (evita vender

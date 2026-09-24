@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { getcurrentUser } from "@/lib/auth/dal";
 import { prisma } from "@/lib/prisma";
 
-export async function addToCart(variantId: string) {
+// Os dois primeiros parâmetros vêm de .bind(null, variantId) — o terceiro é
+// o argumento que o React passa de verdade quando esse action é usado com
+// useActionState (precisa da assinatura (estadoAnterior, formData) => novoEstado
+// pra conseguir saber, no cliente, quando a ação terminou e mostrar o toast).
+export async function addToCart(variantId: string, _prevState: unknown, _formData: FormData) {
   const user = await getcurrentUser();
 
   if (!user) {
@@ -38,4 +42,6 @@ export async function addToCart(variantId: string) {
   });
 
   revalidatePath("/carrinho");
+
+  return { success: true, addedAt: Date.now() };
 }

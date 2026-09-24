@@ -97,8 +97,10 @@ model Product {
   slug        String           @unique
   name        String
   description String?
-  // URL pública do arquivo no bucket do Supabase Storage.
-  imageUrl    String?
+  // Até 3 fotos (URLs públicas do bucket do Supabase Storage). A primeira é
+  // usada como miniatura em listagens/carrinho; a galeria completa só
+  // aparece na página de detalhe do produto.
+  imageUrls   String[]         @default([])
   category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId  String?
   variants    ProductVariant[]
@@ -116,6 +118,10 @@ model ProductVariant {
   productId    String
   name         String
   priceCents   Int
+  // Preço "de", riscado na loja — opcional. Quando preenchido e maior que
+  // priceCents, mostra a promoção; o valor cobrado de verdade continua
+  // sendo sempre priceCents, isso aqui é só exibição.
+  compareAtPriceCents Int?
   stock        Int         @default(0)
   // Usado para concorrência otimista: incrementa a cada baixa de estoque,
   // evitando vender a última unidade duas vezes em pedidos simultâneos.

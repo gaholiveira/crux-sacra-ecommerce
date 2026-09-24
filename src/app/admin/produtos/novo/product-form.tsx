@@ -29,7 +29,7 @@ export function ProductForm({
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<(string | null)[]>([null, null, null]);
 
   return (
     <form
@@ -105,28 +105,37 @@ export function ProductForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="image" className="text-sm font-medium">
-          Imagem
-        </label>
-        <input
-          id="image"
-          name="image"
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="text-sm"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            setPreviewUrl(file ? URL.createObjectURL(file) : null);
-          }}
-        />
-        {previewUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image não aceita blob URL
-          <img
-            src={previewUrl}
-            alt="Pré-visualização"
-            className="mt-2 h-32 w-32 rounded-lg border border-[#D8CDBC] object-cover"
-          />
-        )}
+        <span className="text-sm font-medium">Imagens (até 3)</span>
+        <div className="flex flex-wrap gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex flex-col gap-1.5">
+              <input
+                id={`image-${i}`}
+                name={`image-${i}`}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="text-xs"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  setPreviewUrls((prev) => {
+                    const next = [...prev];
+                    next[i] = file ? URL.createObjectURL(file) : null;
+                    return next;
+                  });
+                }}
+              />
+              {previewUrls[i] && (
+                // eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image não aceita blob URL
+                <img
+                  src={previewUrls[i]!}
+                  alt={`Pré-visualização ${i + 1}`}
+                  className="h-24 w-24 rounded-lg border border-[#D8CDBC] object-cover"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <span className="text-xs text-[#6E6255]">A primeira vira a miniatura nas listagens.</span>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -158,19 +167,35 @@ export function ProductForm({
         </div>
 
         <div className="flex flex-1 flex-col gap-1.5">
-          <label htmlFor="variantStock" className="text-sm font-medium">
-            Estoque
+          <label htmlFor="variantCompareAtPrice" className="text-sm font-medium">
+            Preço original (opcional)
           </label>
           <input
-            id="variantStock"
-            name="variantStock"
+            id="variantCompareAtPrice"
+            name="variantCompareAtPrice"
             type="number"
-            step="1"
+            step="0.01"
             min="0"
             className={inputClass}
-            placeholder="10"
+            placeholder="69.90"
           />
+          <span className="text-xs text-[#6E6255]">Preenche pra mostrar riscado como promoção.</span>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="variantStock" className="text-sm font-medium">
+          Estoque
+        </label>
+        <input
+          id="variantStock"
+          name="variantStock"
+          type="number"
+          step="1"
+          min="0"
+          className={inputClass}
+          placeholder="10"
+        />
       </div>
 
       <div className="flex justify-end gap-3 border-t border-[#D8CDBC] pt-6">

@@ -124,15 +124,32 @@ export function Header({
           <AuthArea user={user} />
         </div>
 
-        {/* Botão hambúrguer: só aparece ABAIXO de md */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center text-[#3A312B] md:hidden"
-          aria-label={open ? "Fechar menu" : "Abrir menu"}
-        >
-          {open ? <CloseIcon /> : <MenuIcon />}
-        </button>
+        {/* Abaixo de md: ícone do carrinho fica sempre visível ao lado do
+            hambúrguer, nunca escondido dentro do menu — senão adicionar um
+            item não dá nenhum feedback visível até o cliente abrir o menu. */}
+        <div className="flex items-center gap-1 md:hidden">
+          <Link
+            href="/carrinho"
+            className="relative flex h-9 w-9 items-center justify-center text-[#3A312B]"
+            aria-label={`Carrinho, ${cartCount} ${cartCount === 1 ? "item" : "itens"}`}
+          >
+            <CartIcon />
+            {cartCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#5A4738] px-1 text-[10px] font-semibold text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex h-9 w-9 items-center justify-center text-[#3A312B]"
+            aria-label={open ? "Fechar menu" : "Abrir menu"}
+          >
+            {open ? <CloseIcon /> : <MenuIcon />}
+          </button>
+        </div>
       </div>
 
       {/* Painel do menu mobile: só existe quando `open` é true */}
@@ -146,14 +163,6 @@ export function Header({
           </Link>
           <Link href="/#sobre" onClick={() => setOpen(false)} className="text-sm font-medium">
             Sobre
-          </Link>
-          <Link
-            href="/carrinho"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 text-sm font-medium"
-          >
-            <CartIcon />
-            Carrinho ({cartCount})
           </Link>
           <div className="border-t border-[#D8CDBC] pt-4">
             <AuthArea user={user} onNavigate={() => setOpen(false)} />

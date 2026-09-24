@@ -48,9 +48,9 @@ export default async function CarrinhoPage() {
               className="flex flex-wrap items-center gap-4 rounded-xl border border-[#D8CDBC] bg-white p-4"
             >
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#F0E6D4]">
-                {item.variant.product.imageUrl && (
+                {item.variant.product.imageUrls[0] && (
                   <Image
-                    src={item.variant.product.imageUrl}
+                    src={item.variant.product.imageUrls[0]}
                     alt={item.variant.product.name}
                     width={64}
                     height={64}

@@ -1,8 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { addToCart } from "./actions";
+import { AddToCartButton } from "./add-to-cart-button";
+import { ProductGallery } from "./product-gallery";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,11 @@ export default async function ProductPage({
   }
 
   const variant = product.variants[0];
+  const hasPromo = Boolean(
+    variant?.compareAtPriceCents && variant.compareAtPriceCents > variant.priceCents,
+  );
+  const formatCurrency = (cents: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
   return (
     <div className="px-6 py-6 md:px-16 md:py-8">
@@ -34,42 +39,42 @@ export default async function ProductPage({
       </div>
 
       <div className="flex flex-col gap-8 md:flex-row md:gap-14">
-        <div className="flex h-[280px] w-full shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F0E6D4] md:h-[520px] md:w-[520px]">
-          {product.imageUrl ? (
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              width={520}
-              height={520}
-              className="h-full w-full object-cover"
-            />
-          ) : null}
-        </div>
+        <ProductGallery images={product.imageUrls} alt={product.name} />
 
         <div className="flex max-w-xl flex-1 flex-col gap-5">
           <h1 className="text-[28px] leading-tight font-bold">{product.name}</h1>
 
           {variant && (
-            <span className="text-2xl font-semibold text-[#5A4738]">
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(variant.priceCents / 100)}
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              {hasPromo && variant.compareAtPriceCents && (
+                <span className="text-base text-[#6E6255] line-through">
+                  {formatCurrency(variant.compareAtPriceCents)}
+                </span>
+              )}
+              <span className="text-2xl font-semibold text-[#5A4738]">
+                {formatCurrency(variant.priceCents)}
+              </span>
+              {hasPromo && variant.compareAtPriceCents && (
+                <span className="rounded-full bg-[#5A4738] px-2.5 py-1 text-xs font-semibold text-white">
+                  -
+                  {Math.round(
+                    (1 - variant.priceCents / variant.compareAtPriceCents) * 100,
+                  )}
+                  %
+                </span>
+              )}
+            </div>
           )}
 
           {product.description && (
             <p className="text-[15px] leading-relaxed text-[#6E6255]">{product.description}</p>
           )}
 
-        <form action={addToCart.bind(null, variant?.id ?? "")}>
-          <button
-            className="mt-2 rounded-lg bg-[#5A4738] px-6 py-3 text-[15px] font-semibold text-white hover:bg-[#4A3A2D] disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!variant || variant.stock === 0}
-          >
-            {variant && variant.stock > 0 ? "Adicionar ao carrinho" : "Fora de estoque"}
-          </button>
-        </form>
+        <AddToCartButton
+          variantId={variant?.id ?? ""}
+          disabled={!variant || variant.stock === 0}
+          label={variant && variant.stock > 0 ? "Adicionar ao carrinho" : "Fora de estoque"}
+        />
       </div>
     </div>
   </div>

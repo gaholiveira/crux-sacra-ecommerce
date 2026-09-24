@@ -1,12 +1,6 @@
-import { Public_Sans } from "next/font/google";
 import { requireAdmin } from "@/lib/auth/dal";
+import { publicSans } from "@/lib/fonts";
 import { AdminNav } from "./admin-nav";
-
-const publicSans = Public_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-public-sans",
-});
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();

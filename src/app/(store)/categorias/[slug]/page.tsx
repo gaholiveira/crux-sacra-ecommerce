@@ -110,9 +110,9 @@ export default async function CategoryPage({
             className="flex flex-col overflow-hidden rounded-2xl border border-[#D8CDBC] bg-white"
           >
             <div className="flex h-[140px] items-center justify-center bg-[#F0E6D4] md:h-[200px]">
-              {product.imageUrl && (
+              {product.imageUrls[0] && (
                 <Image
-                  src={product.imageUrl}
+                  src={product.imageUrls[0]}
                   alt={product.name}
                   width={200}
                   height={200}
@@ -123,12 +123,23 @@ export default async function CategoryPage({
             <div className="flex flex-col gap-1.5 p-4">
               <span className="text-[15px] font-medium">{product.name}</span>
               {product.variants[0] && (
-                <span className="text-[15px] font-semibold text-[#5A4738]">
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format(product.variants[0].priceCents / 100)}
-                </span>
+                <div className="flex items-baseline gap-2">
+                  {product.variants[0].compareAtPriceCents &&
+                    product.variants[0].compareAtPriceCents > product.variants[0].priceCents && (
+                      <span className="text-xs text-[#6E6255] line-through">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(product.variants[0].compareAtPriceCents / 100)}
+                      </span>
+                    )}
+                  <span className="text-[15px] font-semibold text-[#5A4738]">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(product.variants[0].priceCents / 100)}
+                  </span>
+                </div>
               )}
             </div>
           </Link>

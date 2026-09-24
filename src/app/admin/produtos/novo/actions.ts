@@ -22,11 +22,20 @@ const productSchema = z.object({
   // ponto — z.coerce.number() converte pra number e ainda valida que é um
   // número de verdade (rejeita "", "abc", etc.).
   variantPrice: z.coerce.number().nonnegative("Preço não pode ser negativo"),
+  // Vazio vira undefined (sem promoção) — string vazia coagida por
+  // z.coerce.number() daria 0, o que pareceria uma promoção de "de graça".
+  variantCompareAtPrice: z.coerce
+    .number()
+    .nonnegative("Preço original não pode ser negativo")
+    .optional(),
   variantStock: z.coerce
     .number()
     .int("Estoque deve ser um número inteiro")
     .nonnegative("Estoque não pode ser negativo"),
-});
+}).refine(
+  (data) => data.variantCompareAtPrice === undefined || data.variantCompareAtPrice > data.variantPrice,
+  { message: "Preço original deve ser maior que o preço atual", path: ["variantCompareAtPrice"] },
+);
 
 async function uploadProductImage(image: File): Promise<string> {
   const supabaseAdmin = getSupabaseAdmin();
@@ -54,19 +63,23 @@ export async function createProduct(formData: FormData) {
     categoryId: formData.get("categoryId"),
     variantName: formData.get("variantName"),
     variantPrice: formData.get("variantPrice"),
+    variantCompareAtPrice: formData.get("variantCompareAtPrice") || undefined,
     variantStock: formData.get("variantStock"),
   });
 
-  const image = formData.get("image");
-  const imageUrl =
-    image instanceof File && image.size > 0 ? await uploadProductImage(image) : undefined;
+  // Até 3 slots de imagem (image-0, image-1, image-2) — slots vazios são
+  // ignorados, a ordem em que foram preenchidos vira a ordem da galeria.
+  const imageFiles = [0, 1, 2]
+    .map((i) => formData.get(`image-${i}`))
+    .filter((file): file is File => file instanceof File && file.size > 0);
+  const imageUrls = await Promise.all(imageFiles.map(uploadProductImage));
 
   await prisma.product.create({
     data: {
       name: parsed.name,
       slug: parsed.slug,
       description: parsed.description,
-      imageUrl,
+      imageUrls,
       categoryId: parsed.categoryId,
       variants: {
         create: [
@@ -76,6 +89,10 @@ export async function createProduct(formData: FormData) {
             // 4989.999999999999 em JS) — nunca guarde dinheiro sem arredondar
             // pra inteiro antes de salvar.
             priceCents: Math.round(parsed.variantPrice * 100),
+            compareAtPriceCents:
+              parsed.variantCompareAtPrice !== undefined
+                ? Math.round(parsed.variantCompareAtPrice * 100)
+                : undefined,
             stock: parsed.variantStock,
           },
         ],

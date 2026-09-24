@@ -54,9 +54,9 @@ export default async function ProdutosPage() {
                 {products.map((product) => (
                   <tr key={product.id} className="border-b border-[#D8CDBC] last:border-0">
                     <td className="px-6 py-3">
-                      {product.imageUrl ? (
+                      {product.imageUrls[0] ? (
                         <Image
-                          src={product.imageUrl}
+                          src={product.imageUrls[0]}
                           alt={product.name}
                           width={40}
                           height={40}
@@ -71,12 +71,27 @@ export default async function ProdutosPage() {
                       {product.slug}
                     </td>
                     <td className="px-6 py-3">
-                      {product.variants[0]
-                      ? new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(product.variants[0].priceCents / 100)
-                      : "-"}
+                      {product.variants[0] ? (
+                        <div className="flex items-center gap-2">
+                          {product.variants[0].compareAtPriceCents &&
+                            product.variants[0].compareAtPriceCents > product.variants[0].priceCents && (
+                              <span className="text-xs text-[#6E6255] line-through">
+                                {new Intl.NumberFormat("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }).format(product.variants[0].compareAtPriceCents / 100)}
+                              </span>
+                            )}
+                          <span>
+                            {new Intl.NumberFormat("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            }).format(product.variants[0].priceCents / 100)}
+                          </span>
+                        </div>
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     <td className="px-6 py-3">
                       {(() => {

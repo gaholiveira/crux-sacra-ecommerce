@@ -1,16 +1,10 @@
 import Link from "next/link";
-import { Public_Sans } from "next/font/google";
 import { ReactLenis } from "lenis/react";
 import "lenis/dist/lenis.css";
 import { getcurrentUser } from "@/lib/auth/dal";
 import { prisma } from "@/lib/prisma";
+import { publicSans } from "@/lib/fonts";
 import { Header } from "./header";
-
-const publicSans = Public_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-public-sans",
-});
 
 // Essa layout consulta o Prisma (carrinho e usuário atual) direto, então
 // precisa ser dinâmica — senão o Next congelaria o cabeçalho (contador do

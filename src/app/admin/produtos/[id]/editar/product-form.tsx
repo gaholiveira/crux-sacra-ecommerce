@@ -7,12 +7,18 @@ const inputClass =
   "w-full rounded-md border border-[#D8CDBC] px-3 py-2.5 text-sm outline-none focus:border-[#5A4738] focus:ring-[3px] focus:ring-[#5A473859]";
 
 type Category = { id: string; name: string };
-type Variant = { id: string; name: string; priceCents: number; stock: number };
+type Variant = {
+  id: string;
+  name: string;
+  priceCents: number;
+  compareAtPriceCents: number | null;
+  stock: number;
+};
 type Product = {
   name: string;
   slug: string;
   description: string | null;
-  imageUrl: string | null;
+  imageUrls: string[];
   categoryId: string | null;
   variants: Variant[];
 };
@@ -26,7 +32,8 @@ export function EditProductForm({
   product: Product;
   categories: Category[];
 }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<(string | null)[]>([null, null, null]);
+  const [removedSlots, setRemovedSlots] = useState<boolean[]>([false, false, false]);
 
   return (
     <form
@@ -90,38 +97,71 @@ export function EditProductForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="image" className="text-sm font-medium">
-          Imagem
-        </label>
-        {product.imageUrl && !previewUrl && (
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            width={96}
-            height={96}
-            className="mb-1 h-24 w-24 rounded-lg border border-[#D8CDBC] object-cover"
-          />
-        )}
-        <input
-          id="image"
-          name="image"
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="text-sm"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            setPreviewUrl(file ? URL.createObjectURL(file) : null);
-          }}
-        />
-        <span className="text-xs text-[#6E6255]">Deixe em branco para manter a imagem atual.</span>
-        {previewUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image não aceita blob URL
-          <img
-            src={previewUrl}
-            alt="Pré-visualização"
-            className="mt-2 h-24 w-24 rounded-lg border border-[#D8CDBC] object-cover"
-          />
-        )}
+        <span className="text-sm font-medium">Imagens (até 3)</span>
+        <div className="flex flex-wrap gap-4">
+          {[0, 1, 2].map((i) => {
+            const currentUrl = product.imageUrls[i];
+            const isRemoved = removedSlots[i];
+
+            return (
+              <div key={i} className="flex flex-col gap-1.5">
+                {currentUrl && !previewUrls[i] && !isRemoved && (
+                  <Image
+                    src={currentUrl}
+                    alt={`${product.name} ${i + 1}`}
+                    width={96}
+                    height={96}
+                    className="h-24 w-24 rounded-lg border border-[#D8CDBC] object-cover"
+                  />
+                )}
+                {previewUrls[i] && (
+                  // eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image não aceita blob URL
+                  <img
+                    src={previewUrls[i]!}
+                    alt={`Pré-visualização ${i + 1}`}
+                    className="h-24 w-24 rounded-lg border border-[#D8CDBC] object-cover"
+                  />
+                )}
+                <input
+                  id={`image-${i}`}
+                  name={`image-${i}`}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="text-xs"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setPreviewUrls((prev) => {
+                      const next = [...prev];
+                      next[i] = file ? URL.createObjectURL(file) : null;
+                      return next;
+                    });
+                  }}
+                />
+                {currentUrl && !previewUrls[i] && (
+                  <label className="flex items-center gap-1.5 text-xs text-[#6E6255]">
+                    <input
+                      type="checkbox"
+                      name={`removeImage-${i}`}
+                      checked={isRemoved}
+                      onChange={(e) =>
+                        setRemovedSlots((prev) => {
+                          const next = [...prev];
+                          next[i] = e.target.checked;
+                          return next;
+                        })
+                      }
+                    />
+                    Remover
+                  </label>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <span className="text-xs text-[#6E6255]">
+          Deixe em branco pra manter a imagem atual daquele slot. A primeira vira a miniatura nas
+          listagens.
+        </span>
       </div>
 
       <div className="flex flex-col gap-4 border-t border-[#D8CDBC] pt-6">
@@ -159,19 +199,39 @@ export function EditProductForm({
               </div>
 
               <div className="flex flex-1 flex-col gap-1.5">
-                <label htmlFor={`stock-${variant.id}`} className="text-sm font-medium">
-                  Estoque
+                <label htmlFor={`compareAtPrice-${variant.id}`} className="text-sm font-medium">
+                  Preço original
                 </label>
                 <input
-                  id={`stock-${variant.id}`}
-                  name={`stock-${variant.id}`}
+                  id={`compareAtPrice-${variant.id}`}
+                  name={`compareAtPrice-${variant.id}`}
                   type="number"
-                  step="1"
+                  step="0.01"
                   min="0"
+                  placeholder="Sem promoção"
                   className={inputClass}
-                  defaultValue={variant.stock}
+                  defaultValue={
+                    variant.compareAtPriceCents !== null
+                      ? (variant.compareAtPriceCents / 100).toFixed(2)
+                      : ""
+                  }
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={`stock-${variant.id}`} className="text-sm font-medium">
+                Estoque
+              </label>
+              <input
+                id={`stock-${variant.id}`}
+                name={`stock-${variant.id}`}
+                type="number"
+                step="1"
+                min="0"
+                className={inputClass}
+                defaultValue={variant.stock}
+              />
             </div>
           </div>
         ))}

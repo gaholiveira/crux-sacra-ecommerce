@@ -4,28 +4,31 @@ A full-stack e-commerce application for a religious goods store (rosaries, cruci
 
 Everything below is genuinely implemented and manually tested end-to-end against a real Postgres database, a real Supabase project, and Mercado Pago's real sandbox API — this is not a scaffold or a UI-only demo.
 
+**Live:** https://crux-sacra-ecommerce.vercel.app (Mercado Pago sandbox — no real charges)
+
 ## Features
 
 **Storefront**
 - Home page with hero, category grid, "about" section, testimonials, and social links — all pulled from the database where applicable
-- Product listing (all products and per-category), product detail pages
+- Product listing (all products and per-category), product detail pages with an interactive up-to-3-image gallery and strikethrough promotional pricing when a "compare at" price is set
 - A "Personalizado" category for custom orders: a reference-photo gallery plus a direct WhatsApp contact button, instead of a regular product grid
-- Cart: add / increment / decrement / remove, with live item count in the navbar
+- Cart: add / increment / decrement / remove, with live item count in the navbar (visible on mobile even with the nav collapsed into the hamburger menu) and a toast confirmation on add
 - Checkout: address management, order creation with **atomic stock decrement** and **optimistic concurrency control** (no overselling under concurrent checkouts)
-- **Payment**: Mercado Pago Checkout Bricks embedded directly in the page — credit/debit card and Pix (with inline QR code), backed by Mercado Pago's Orders API
+- **Payment**: Mercado Pago Checkout Bricks embedded directly in the page, themed to match the site — credit/debit card and Pix (with inline QR code and automatic payment confirmation via polling, no manual refresh needed) — backed by Mercado Pago's Orders API, with an order summary shown alongside the payment form
 - Customer profile: account info (editable name), saved addresses, order history with live status and shipping tracking info once an admin sets it
+- `loading.tsx` skeleton states on every data-fetching route (storefront and admin)
 - Email/password authentication (sign up, log in, log out) with route-level and Server-Action-level authorization
 
 **Payments (Mercado Pago)**
 - Orders API integration (not the legacy Payments API, which Mercado Pago has marked for deprecation) via Checkout Bricks
 - Server-side order creation recomputes the total from the database — the amount charged is never trusted from the client
 - Idempotency key reused between our own `Order` and Mercado Pago's request, so a double-click or retry can't double-charge
-- Webhook endpoint validates the `x-signature` HMAC before trusting anything, then re-fetches the order from Mercado Pago's API rather than trusting the notification body
+- Webhook endpoint validates the `x-signature` HMAC before trusting anything, then re-fetches the order from Mercado Pago's API rather than trusting the notification body — **confirmed working end-to-end against the live Vercel deployment**: signature validation, the real notification shape (`type: "order"`, not `"payment"` as the legacy API used), and the order transitioning to `PAID` driven entirely by the webhook
 - Sends the anti-fraud signals Mercado Pago's own "payment approval" checklist recommends: line items with unit price/quantity/category, payer name and address, and a per-order card-statement descriptor
 - Payment status mapping was verified against real sandbox transactions rather than the SDK's documentation, which turned out to be wrong (a successful Orders API payment reports `status: "processed"` / `status_detail: "accredited"`, not `"approved"`)
 
 **Admin panel** (role-gated, enforced in the layout *and* in every mutating Server Action — a layout check alone cannot protect a Server Action, which is an independently reachable endpoint)
-- Products: create (with image upload, category, variant pricing/stock) and edit existing products, including restocking
+- Products: create (up to 3 images, category, variant pricing/stock) and edit existing products — restocking, promotional ("compare at") pricing, and replacing/removing individual images without touching the others
 - Orders: list with filters (status, customer name/email via URL search params), detail view with items/address/payment history, manual status transitions with an audit trail (`OrderStatusEvent`), and shipping carrier/tracking-code fields that surface back on the customer's order page
 - Customers: list with filters (name/email, account type), detail view with addresses, order history, and total spent
 - Responsive shell: the sidebar collapses into a mobile top bar with a hamburger menu below `md`, and the active section is derived from the real URL rather than hardcoded
@@ -37,9 +40,9 @@ Everything below is genuinely implemented and manually tested end-to-end against
 - Lightweight inertia scrolling ([Lenis](https://lenis.dev/), ~3KB)
 
 **Not yet done**
-- Production deployment: the app currently only runs against Mercado Pago's sandbox from `localhost`. Going live requires a real domain, which also unblocks verifying the real webhook notification payload shape (Mercado Pago can't reach `localhost`).
 - Stock is not automatically restored when a payment fails or is cancelled after the order already decremented it (currently a manual admin fix).
 - NFe (Brazilian electronic invoice) emission — designed (provider chosen, trigger point decided) but not implemented yet.
+- Real production Mercado Pago credentials — the deployed app is fully live but still running Mercado Pago's *sandbox*, deliberately, until the store is ready to take real payments.
 
 ## Tech Stack
 
@@ -65,7 +68,9 @@ A few decisions worth calling out, since they were deliberate rather than defaul
 - **A Data Access Layer (`getCurrentUser`/`requireAdmin`) centralizes authorization**, checked both at the page/layout level (UX) and inside every mutating Server Action (the actual security boundary) — Next.js Server Actions are independently reachable POST endpoints, so a page-level check alone is not sufficient.
 - **Ownership checks are baked into every query**, not assumed from client-supplied IDs — e.g. deleting a cart item filters by `cart: { userId }` in the same query, so a forged ID can only ever affect the caller's own data.
 - **Admin list filters live in the URL** (`?status=PAID&q=maria`), not client-side React state — the page is reloadable, shareable, and back-button-friendly without any client JS.
-- **Payment integration facts were verified against the real API**, not assumed from documentation: several details (a supposedly-optional `payment_method.type` that's actually required, the real success-status vocabulary, which test card numbers work under which API version) turned out to differ from what Mercado Pago's own docs and SDK comments claimed.
+- **Payment integration facts were verified against the real API**, not assumed from documentation: several details (a supposedly-optional `payment_method.type` that's actually required, the real success-status vocabulary, the real webhook notification shape, which test card numbers work under which API version) turned out to differ from what Mercado Pago's own docs and SDK comments claimed.
+- **The webhook never trusts a lookup succeeding**: an order id that doesn't resolve (a stale id, or Mercado Pago's own webhook-simulator payload) is caught and logged rather than left to crash the request — otherwise a permanently-unresolvable notification gets retried by Mercado Pago forever.
+- **The Prisma client is generated as part of `build`, not just committed or run once locally**: `src/generated/prisma` is gitignored (it's derived output), which is invisible in local dev once you've run `prisma generate` by hand — but breaks a from-scratch CI/Vercel checkout with a "Module not found" error unless generation is wired into `build`/`postinstall`.
 
 ## Getting started
 

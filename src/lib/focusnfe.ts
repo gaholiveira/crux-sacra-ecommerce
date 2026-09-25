@@ -25,6 +25,26 @@ export const TAX_CONFIG = {
   cofinsSituacaoTributaria: "99",
 } as const;
 
+// Dados cadastrais da própria empresa (emitente) — confirmados testando
+// contra a API de verdade: o suporte da Focus NFe apontou que o payload
+// precisa desses campos mesmo a empresa já estando cadastrada no painel
+// deles (não é preenchido automaticamente a partir do cadastro). Mantidos
+// isolados aqui pelo mesmo motivo do TAX_CONFIG: errar isso gera uma nota
+// inválida. Atualize se o endereço/IE da empresa mudar no painel da
+// Focus NFe.
+export const EMITTER = {
+  cnpj: "62463131000162",
+  razaoSocial: "ISADORA MATOS FERREIRA LTDA",
+  nomeFantasia: "ISADORA MATOS FERREIRA LTDA",
+  logradouro: "Rua Cassiano Ricardo",
+  numero: "441",
+  bairro: "Parque Residencial Nova Franca",
+  municipio: "Franca",
+  uf: "SP",
+  cep: "14409214",
+  inscricaoEstadual: "155538485112",
+} as const;
+
 function getTestMode(): boolean {
   return process.env.FOCUS_NFE_TEST_MODE === "true";
 }
@@ -145,6 +165,17 @@ export function buildInvoicePayload(order: InvoiceOrder) {
     valor_total: centsToDecimal(order.totalCents),
 
     regime_tributario_emitente: TAX_CONFIG.regimeTributarioEmitente,
+
+    cnpj_emitente: EMITTER.cnpj,
+    nome_emitente: EMITTER.razaoSocial,
+    nome_fantasia_emitente: EMITTER.nomeFantasia,
+    logradouro_emitente: EMITTER.logradouro,
+    numero_emitente: EMITTER.numero,
+    bairro_emitente: EMITTER.bairro,
+    municipio_emitente: EMITTER.municipio,
+    uf_emitente: EMITTER.uf,
+    cep_emitente: EMITTER.cep,
+    inscricao_estadual_emitente: EMITTER.inscricaoEstadual,
 
     nome_destinatario: order.shippingAddress.recipient || order.user.name || "Consumidor",
     cpf_destinatario: order.user.cpf,

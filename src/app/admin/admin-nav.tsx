@@ -26,6 +26,14 @@ function CloseIcon() {
   );
 }
 
+function BackIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
 export function AdminNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -43,7 +51,9 @@ export function AdminNav() {
     <>
       {/* Barra superior: só existe abaixo de md */}
       <div className="flex items-center justify-between bg-[#3A312B] px-4 py-3 md:hidden">
-        <span className="text-[15px] font-semibold tracking-wide text-[#E8E0D5]">Crux Sacra</span>
+        <Link href="/" className="text-[15px] font-semibold tracking-wide text-[#E8E0D5]">
+          Crux Sacra
+        </Link>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -60,19 +70,38 @@ export function AdminNav() {
               {item.label}
             </Link>
           ))}
+          <Link
+            href="/"
+            onClick={() => setOpen(false)}
+            className="mt-2 flex items-center gap-2 border-t border-[#5A4738] pt-4 text-sm text-[#A99C8C] hover:text-[#E8E0D5]"
+          >
+            <BackIcon />
+            Ver loja
+          </Link>
         </nav>
       )}
 
       {/* Sidebar: só existe a partir de md */}
-      <aside className="hidden w-60 shrink-0 flex-col gap-1 bg-[#3A312B] p-4 md:flex">
-        <div className="flex items-center gap-2 border-b-2 border-[#C9B18C] px-2 pb-5 mb-2">
+      <aside className="hidden w-60 shrink-0 flex-col gap-1 overflow-y-auto bg-[#3A312B] p-4 md:sticky md:top-0 md:flex md:h-screen">
+        <Link
+          href="/"
+          className="flex items-center gap-2 border-b-2 border-[#C9B18C] px-2 pb-5 mb-2"
+        >
           <span className="text-[15px] font-semibold tracking-wide text-[#E8E0D5]">Crux Sacra</span>
-        </div>
+        </Link>
         {navItems.map((item) => (
           <Link key={item.href} href={item.href} className={linkClass(item.href)}>
             {item.label}
           </Link>
         ))}
+
+        <Link
+          href="/"
+          className="mt-auto flex items-center gap-2 border-t border-[#5A4738] px-3 pt-4 text-sm text-[#A99C8C] hover:text-[#E8E0D5]"
+        >
+          <BackIcon />
+          Ver loja
+        </Link>
       </aside>
     </>
   );

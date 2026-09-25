@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/dal";
+import { emitInvoice, refreshInvoiceStatus, cancelInvoice } from "@/lib/focusnfe";
 
 const orderStatusValues = [
   "PENDING",
@@ -53,4 +54,86 @@ export async function updateOrderStatus(orderId: string, formData: FormData) {
 
   revalidatePath(`/admin/pedidos/${orderId}`);
   revalidatePath("/admin/pedidos");
+}
+
+export type InvoiceActionState = { error?: string } | null;
+
+export async function emitInvoiceAction(
+  orderId: string,
+  _prevState: InvoiceActionState,
+  _formData: FormData,
+): Promise<InvoiceActionState> {
+  await requireAdmin();
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      user: true,
+      shippingAddress: true,
+      items: { include: { variant: { include: { product: true } } } },
+    },
+  });
+  if (!order) {
+    return { error: "Pedido não encontrado" };
+  }
+
+  try {
+    await emitInvoice(order);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erro ao emitir nota fiscal" };
+  }
+
+  revalidatePath(`/admin/pedidos/${orderId}`);
+  return null;
+}
+
+export async function refreshInvoiceStatusAction(
+  orderId: string,
+  _prevState: InvoiceActionState,
+  _formData: FormData,
+): Promise<InvoiceActionState> {
+  await requireAdmin();
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { orderId },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!invoice) {
+    return { error: "Nenhuma nota encontrada pra esse pedido" };
+  }
+
+  try {
+    await refreshInvoiceStatus(invoice.ref);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erro ao consultar status" };
+  }
+
+  revalidatePath(`/admin/pedidos/${orderId}`);
+  return null;
+}
+
+export async function cancelInvoiceAction(
+  orderId: string,
+  _prevState: InvoiceActionState,
+  formData: FormData,
+): Promise<InvoiceActionState> {
+  await requireAdmin();
+
+  const justificativa = String(formData.get("justificativa") ?? "").trim();
+  const invoice = await prisma.invoice.findFirst({
+    where: { orderId },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!invoice) {
+    return { error: "Nenhuma nota encontrada pra esse pedido" };
+  }
+
+  try {
+    await cancelInvoice(invoice.ref, justificativa);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erro ao cancelar nota" };
+  }
+
+  revalidatePath(`/admin/pedidos/${orderId}`);
+  return null;
 }

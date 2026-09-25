@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updateOrderStatus } from "./actions";
+import { InvoiceCard } from "./invoice-card";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,16 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Cancelado",
   REFUNDED: "Reembolsado",
 };
+
+// Emitir nota antes do pagamento confirmado não faz sentido — o cancelamento
+// de NFe tem janela curta, então só libera o card depois que o pedido
+// realmente virou venda.
+const invoiceEligibleStatuses = new Set([
+  "PAID",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+]);
 
 const inputClass =
   "w-full rounded-md border border-[#D8CDBC] px-3 py-2.5 text-sm outline-none focus:border-[#5A4738] focus:ring-[3px] focus:ring-[#5A473859]";
@@ -34,12 +45,15 @@ export default async function PedidoDetalhePage({
       items: true,
       payments: true,
       statusHistory: { orderBy: { createdAt: "desc" } },
+      invoices: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
 
   if (!order) {
     notFound();
   }
+
+  const latestInvoice = order.invoices[0] ?? null;
 
   const formatCurrency = (cents: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -188,6 +202,10 @@ export default async function PedidoDetalhePage({
               </button>
             </form>
           </section>
+
+          {invoiceEligibleStatuses.has(order.status) && (
+            <InvoiceCard orderId={order.id} invoice={latestInvoice} />
+          )}
         </div>
       </div>
     </div>

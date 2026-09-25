@@ -39,12 +39,22 @@ enum Role {
   ADMIN
 }
 
+enum InvoiceStatus {
+  PROCESSING
+  AUTHORIZED
+  ERROR
+  CANCELLED
+}
+
 // Espelha auth.users do Supabase: o `id` é o mesmo UUID gerado pelo Supabase Auth,
 // não geramos nem armazenamos senha aqui.
 model User {
   id        String    @id
   email     String    @unique
   name      String?
+  // Capturado no checkout (o Payment Brick da Mercado Pago já pede isso),
+  // guardado aqui pra poder emitir nota fiscal depois sem pedir de novo.
+  cpf       String?
   role      Role      @default(CUSTOMER)
   addresses Address[]
   carts     Cart[]
@@ -101,6 +111,10 @@ model Product {
   // usada como miniatura em listagens/carrinho; a galeria completa só
   // aparece na página de detalhe do produto.
   imageUrls   String[]         @default([])
+  // Classificação fiscal (8 dígitos) — opcional até o produto precisar ser
+  // faturado de verdade; a emissão de nota bloqueia com mensagem clara se
+  // faltar, em vez de mandar uma nota fiscal inválida.
+  ncm         String?
   category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId  String?
   variants    ProductVariant[]
@@ -174,6 +188,7 @@ model Order {
   trackingCode    String?
   items           OrderItem[]
   payments        Payment[]
+  invoices        Invoice[]
   statusHistory   OrderStatusEvent[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -215,6 +230,29 @@ model Payment {
   rawWebhookPayload     Json?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
+
+  @@index([orderId])
+}
+
+// Uma linha por tentativa de emissão de NFe (Focus NFe). "ref" não é
+// reaproveitável depois que a nota autoriza — uma nova tentativa após erro
+// cria uma linha nova com um ref novo, nunca reescreve uma já autorizada.
+model Invoice {
+  id            String        @id @default(uuid())
+  order         Order         @relation(fields: [orderId], references: [id])
+  orderId       String
+  ref           String        @unique
+  status        InvoiceStatus @default(PROCESSING)
+  numero        String?
+  serie         String?
+  chaveAcesso   String?
+  statusSefaz   String?
+  mensagemSefaz String?
+  xmlUrl        String?
+  danfeUrl      String?
+  rawPayload    Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([orderId])
 }

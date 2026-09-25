@@ -127,6 +127,23 @@ export function ProductForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
+        <label htmlFor="ncm" className="text-sm font-medium">
+          NCM (opcional)
+        </label>
+        <input
+          id="ncm"
+          name="ncm"
+          className={`${inputClass} font-mono text-[13px]`}
+          placeholder="71179000"
+          maxLength={8}
+        />
+        <FieldError messages={errors?.ncm} />
+        <span className="text-xs text-[#6E6255]">
+          Necessário só na hora de emitir nota fiscal — pode preencher depois.
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">Imagens (até 3)</span>
         <div className="flex flex-wrap gap-4">
           {[0, 1, 2].map((i) => (

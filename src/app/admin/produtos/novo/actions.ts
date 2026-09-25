@@ -18,6 +18,14 @@ const productSchema = z.object({
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use apenas letras minúsculas, números e hífen"),
   description: z.string().trim().optional(),
   categoryId: z.string().trim().min(1, "Selecione uma categoria"),
+  // Opcional na hora de cadastrar — só vira bloqueio na hora de emitir nota
+  // fiscal (ver src/lib/focusnfe.ts), com mensagem citando o produto.
+  ncm: z
+    .string()
+    .trim()
+    .regex(/^\d{8}$/, "NCM deve ter 8 dígitos")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
 });
 
 const variantSchema = z
@@ -86,6 +94,7 @@ export async function createProduct(
     slug: formData.get("slug"),
     description: formData.get("description") || undefined,
     categoryId: formData.get("categoryId"),
+    ncm: formData.get("ncm") || undefined,
   });
 
   // Cada linha de variante manda sua própria key (gerada no cliente) num
@@ -141,6 +150,7 @@ export async function createProduct(
         description: data.description,
         imageUrls,
         categoryId: data.categoryId,
+        ncm: data.ncm,
         variants: {
           create: variants.map((variant) => ({
             name: variant.name,

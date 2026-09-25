@@ -52,6 +52,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Pedido não está aguardando pagamento" }, { status: 409 });
   }
 
+  // O Brick já pede CPF pra processar o pagamento — aproveita e guarda no
+  // nosso banco, senão não tem de onde tirar esse dado depois pra emitir
+  // nota fiscal (a Mercado Pago não devolve isso, só recebe).
+  const identification = formData.payer?.identification;
+  if (identification?.type === "CPF" && identification.number && !user.cpf) {
+    await prisma.user.update({ where: { id: user.id }, data: { cpf: identification.number } });
+  }
+
   // Nunca confia no valor que o navegador manda — recalcula a partir do
   // total do pedido guardado no banco. A API de Orders quer o valor como
   // string decimal ("49.90"), não centavos.

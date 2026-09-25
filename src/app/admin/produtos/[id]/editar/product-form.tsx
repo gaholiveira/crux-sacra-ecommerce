@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useActionState, useState } from "react";
+import { ImageSlot } from "@/components/image-slot";
+import type { UpdateProductState } from "./actions";
 
 const inputClass =
   "w-full rounded-md border border-[#D8CDBC] px-3 py-2.5 text-sm outline-none focus:border-[#5A4738] focus:ring-[3px] focus:ring-[#5A473859]";
+
+function FieldError({ messages }: { messages?: string[] }) {
+  if (!messages?.length) return null;
+  return <span className="text-xs text-red-700">{messages[0]}</span>;
+}
 
 type Category = { id: string; name: string };
 type Variant = {
@@ -28,23 +34,35 @@ export function EditProductForm({
   product,
   categories,
 }: {
-  action: (formData: FormData) => void;
+  action: (prevState: UpdateProductState, formData: FormData) => Promise<UpdateProductState>;
   product: Product;
   categories: Category[];
 }) {
-  const [previewUrls, setPreviewUrls] = useState<(string | null)[]>([null, null, null]);
-  const [removedSlots, setRemovedSlots] = useState<boolean[]>([false, false, false]);
+  const [state, formAction, isPending] = useActionState(action, null);
+  // Variantes novas adicionadas nessa edição — ainda sem id, só existem no
+  // cliente até salvar. Cada uma tem uma key própria (não o índice), pra
+  // remover uma do meio não bagunçar as outras.
+  const [newVariantKeys, setNewVariantKeys] = useState<string[]>([]);
+
+  const errors = state?.fieldErrors;
 
   return (
     <form
-      action={action}
+      action={formAction}
       className="flex max-w-xl flex-col gap-6 rounded-xl border border-[#D8CDBC] bg-white p-8"
     >
+      {state?.generalError && (
+        <p className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          {state.generalError}
+        </p>
+      )}
+
       <div className="flex flex-col gap-1.5">
         <label htmlFor="name" className="text-sm font-medium">
           Nome do produto
         </label>
         <input id="name" name="name" className={inputClass} defaultValue={product.name} />
+        <FieldError messages={errors?.name} />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -57,6 +75,7 @@ export function EditProductForm({
           className={`${inputClass} font-mono text-[13px]`}
           defaultValue={product.slug}
         />
+        <FieldError messages={errors?.slug} />
         <span className="text-xs text-[#6E6255]">
           Cuidado: mudar o slug muda a URL do produto na loja.
         </span>
@@ -94,147 +113,197 @@ export function EditProductForm({
             </option>
           ))}
         </select>
+        <FieldError messages={errors?.categoryId} />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">Imagens (até 3)</span>
         <div className="flex flex-wrap gap-4">
-          {[0, 1, 2].map((i) => {
-            const currentUrl = product.imageUrls[i];
-            const isRemoved = removedSlots[i];
-
-            return (
-              <div key={i} className="flex flex-col gap-1.5">
-                {currentUrl && !previewUrls[i] && !isRemoved && (
-                  <Image
-                    src={currentUrl}
-                    alt={`${product.name} ${i + 1}`}
-                    width={96}
-                    height={96}
-                    className="h-24 w-24 rounded-lg border border-[#D8CDBC] object-cover"
-                  />
-                )}
-                {previewUrls[i] && (
-                  // eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image não aceita blob URL
-                  <img
-                    src={previewUrls[i]!}
-                    alt={`Pré-visualização ${i + 1}`}
-                    className="h-24 w-24 rounded-lg border border-[#D8CDBC] object-cover"
-                  />
-                )}
-                <input
-                  id={`image-${i}`}
-                  name={`image-${i}`}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="text-xs"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    setPreviewUrls((prev) => {
-                      const next = [...prev];
-                      next[i] = file ? URL.createObjectURL(file) : null;
-                      return next;
-                    });
-                  }}
-                />
-                {currentUrl && !previewUrls[i] && (
-                  <label className="flex items-center gap-1.5 text-xs text-[#6E6255]">
-                    <input
-                      type="checkbox"
-                      name={`removeImage-${i}`}
-                      checked={isRemoved}
-                      onChange={(e) =>
-                        setRemovedSlots((prev) => {
-                          const next = [...prev];
-                          next[i] = e.target.checked;
-                          return next;
-                        })
-                      }
-                    />
-                    Remover
-                  </label>
-                )}
-              </div>
-            );
-          })}
+          {[0, 1, 2].map((i) => (
+            <ImageSlot
+              key={i}
+              name={`image-${i}`}
+              currentUrl={product.imageUrls[i]}
+              removeInputName={`removeImage-${i}`}
+              badge={i === 0 ? "Miniatura" : undefined}
+            />
+          ))}
         </div>
         <span className="text-xs text-[#6E6255]">
-          Deixe em branco pra manter a imagem atual daquele slot. A primeira vira a miniatura nas
+          Passe o mouse sobre uma imagem pra trocar ou remover. A primeira vira a miniatura nas
           listagens.
         </span>
       </div>
 
       <div className="flex flex-col gap-4 border-t border-[#D8CDBC] pt-6">
-        <h2 className="text-sm font-semibold">Variantes</h2>
-        {product.variants.map((variant) => (
-          <div key={variant.id} className="flex flex-col gap-3 rounded-lg border border-[#D8CDBC] p-4">
-            <input type="hidden" name="variantIds" value={variant.id} />
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Variantes</h2>
+          <button
+            type="button"
+            onClick={() => setNewVariantKeys((prev) => [...prev, crypto.randomUUID()])}
+            className="text-sm font-medium text-[#5A4738] hover:underline"
+          >
+            + Adicionar variante
+          </button>
+        </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor={`name-${variant.id}`} className="text-sm font-medium">
-                Nome da variante
-              </label>
-              <input
-                id={`name-${variant.id}`}
-                name={`name-${variant.id}`}
-                className={inputClass}
-                defaultValue={variant.name}
-              />
-            </div>
+        {product.variants.map((variant) => {
+          const variantErrors = state?.variantErrors?.[variant.id];
 
-            <div className="flex gap-4">
-              <div className="flex flex-1 flex-col gap-1.5">
-                <label htmlFor={`price-${variant.id}`} className="text-sm font-medium">
-                  Preço (R$)
+          return (
+            <div key={variant.id} className="flex flex-col gap-3 rounded-lg border border-[#D8CDBC] p-4">
+              <input type="hidden" name="variantIds" value={variant.id} />
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor={`name-${variant.id}`} className="text-sm font-medium">
+                  Nome da variante
                 </label>
                 <input
-                  id={`price-${variant.id}`}
-                  name={`price-${variant.id}`}
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  id={`name-${variant.id}`}
+                  name={`name-${variant.id}`}
                   className={inputClass}
-                  defaultValue={(variant.priceCents / 100).toFixed(2)}
+                  defaultValue={variant.name}
                 />
+                <FieldError messages={variantErrors?.name} />
               </div>
 
-              <div className="flex flex-1 flex-col gap-1.5">
-                <label htmlFor={`compareAtPrice-${variant.id}`} className="text-sm font-medium">
-                  Preço original
+              <div className="flex gap-4">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor={`price-${variant.id}`} className="text-sm font-medium">
+                    Preço (R$)
+                  </label>
+                  <input
+                    id={`price-${variant.id}`}
+                    name={`price-${variant.id}`}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className={inputClass}
+                    defaultValue={(variant.priceCents / 100).toFixed(2)}
+                  />
+                  <FieldError messages={variantErrors?.price} />
+                </div>
+
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor={`compareAtPrice-${variant.id}`} className="text-sm font-medium">
+                    Preço original
+                  </label>
+                  <input
+                    id={`compareAtPrice-${variant.id}`}
+                    name={`compareAtPrice-${variant.id}`}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Sem promoção"
+                    className={inputClass}
+                    defaultValue={
+                      variant.compareAtPriceCents !== null
+                        ? (variant.compareAtPriceCents / 100).toFixed(2)
+                        : ""
+                    }
+                  />
+                  <FieldError messages={variantErrors?.compareAtPrice} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor={`stock-${variant.id}`} className="text-sm font-medium">
+                  Estoque
                 </label>
                 <input
-                  id={`compareAtPrice-${variant.id}`}
-                  name={`compareAtPrice-${variant.id}`}
+                  id={`stock-${variant.id}`}
+                  name={`stock-${variant.id}`}
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
-                  placeholder="Sem promoção"
                   className={inputClass}
-                  defaultValue={
-                    variant.compareAtPriceCents !== null
-                      ? (variant.compareAtPriceCents / 100).toFixed(2)
-                      : ""
-                  }
+                  defaultValue={variant.stock}
                 />
+                <FieldError messages={variantErrors?.stock} />
               </div>
             </div>
+          );
+        })}
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor={`stock-${variant.id}`} className="text-sm font-medium">
-                Estoque
-              </label>
+        {newVariantKeys.map((key) => {
+          const variantErrors = state?.variantErrors?.[key];
+
+          return (
+            <div key={key} className="flex flex-col gap-3 rounded-lg border border-dashed border-[#5A4738] p-4">
+              <input type="hidden" name="newVariantKeys" value={key} />
+
+              <div className="flex items-center justify-between">
+                <label htmlFor={`new-name-${key}`} className="text-sm font-medium">
+                  Nome da variante (nova)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setNewVariantKeys((prev) => prev.filter((k) => k !== key))}
+                  className="text-xs text-[#6E6255] underline hover:text-red-700"
+                >
+                  Remover
+                </button>
+              </div>
               <input
-                id={`stock-${variant.id}`}
-                name={`stock-${variant.id}`}
-                type="number"
-                step="1"
-                min="0"
+                id={`new-name-${key}`}
+                name={`new-name-${key}`}
                 className={inputClass}
-                defaultValue={variant.stock}
+                placeholder="Ex: P, M, G, Azul..."
               />
+              <FieldError messages={variantErrors?.name} />
+
+              <div className="flex gap-4">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor={`new-price-${key}`} className="text-sm font-medium">
+                    Preço (R$)
+                  </label>
+                  <input
+                    id={`new-price-${key}`}
+                    name={`new-price-${key}`}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className={inputClass}
+                    placeholder="49.90"
+                  />
+                  <FieldError messages={variantErrors?.price} />
+                </div>
+
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor={`new-compareAtPrice-${key}`} className="text-sm font-medium">
+                    Preço original (opcional)
+                  </label>
+                  <input
+                    id={`new-compareAtPrice-${key}`}
+                    name={`new-compareAtPrice-${key}`}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className={inputClass}
+                    placeholder="69.90"
+                  />
+                  <FieldError messages={variantErrors?.compareAtPrice} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor={`new-stock-${key}`} className="text-sm font-medium">
+                  Estoque
+                </label>
+                <input
+                  id={`new-stock-${key}`}
+                  name={`new-stock-${key}`}
+                  type="number"
+                  step="1"
+                  min="0"
+                  className={inputClass}
+                  placeholder="10"
+                />
+                <FieldError messages={variantErrors?.stock} />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex justify-end gap-3 border-t border-[#D8CDBC] pt-6">
@@ -246,9 +315,10 @@ export function EditProductForm({
         </a>
         <button
           type="submit"
-          className="rounded-md bg-[#5A4738] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#4A3A2D]"
+          disabled={isPending}
+          className="rounded-md bg-[#5A4738] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#4A3A2D] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Salvar alterações
+          {isPending ? "Salvando..." : "Salvar alterações"}
         </button>
       </div>
     </form>

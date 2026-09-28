@@ -93,6 +93,11 @@ model Category {
   id       String    @id @default(uuid())
   slug     String    @unique
   name     String
+  // Foto de capa mostrada no card da home. Opcional (card cai pro fundo
+  // sólido sem imagem) — gerida por script (scripts/set-category-image.mjs),
+  // mesmo padrão de CustomizationExample abaixo, já que categoria não tem
+  // tela de admin.
+  imageUrl String?
   products Product[]
 }
 

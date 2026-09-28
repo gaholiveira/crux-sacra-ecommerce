@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +86,16 @@ export default async function HomePage() {
               href={`/categorias/${category.slug}`}
               className="relative flex h-[140px] w-[calc(50%-0.5rem)] items-end overflow-hidden rounded-2xl bg-[#F0E6D4] md:h-[220px] md:w-[calc(25%-1.125rem)]"
             >
-              <span className="w-full bg-[#3A312B]/70 p-2.5 text-center text-xs font-semibold text-white md:p-3.5 md:text-sm">
+              {category.imageUrl && (
+                <Image
+                  src={category.imageUrl}
+                  alt={category.name}
+                  fill
+                  sizes="(min-width: 768px) 25vw, 50vw"
+                  className="object-cover"
+                />
+              )}
+              <span className="relative w-full bg-[#3A312B]/70 p-2.5 text-center text-xs font-semibold text-white md:p-3.5 md:text-sm">
                 {category.name}
               </span>
             </Link>

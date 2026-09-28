@@ -47,6 +47,7 @@ export default async function ProdutosPage() {
                   <th className="px-6 py-3 font-medium">Slug</th>
                   <th className="px-6 py-3 font-medium">Preço</th>
                   <th className="px-6 py-3 font-medium">Estoque</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
                   <th className="px-6 py-3 font-medium"></th>
                 </tr>
               </thead>
@@ -102,6 +103,17 @@ export default async function ProdutosPage() {
                           </span>
                         );
                       })()}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                          product.status === "ACTIVE"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-[#F0E6D4] text-[#6E6255]"
+                        }`}
+                      >
+                        {product.status === "ACTIVE" ? "Ativo" : "Pausado"}
+                      </span>
                     </td>
                     <td className="px-6 py-3 text-right">
                       <Link

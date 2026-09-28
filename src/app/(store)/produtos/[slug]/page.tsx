@@ -13,8 +13,11 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
 
-  const product = await prisma.product.findUnique({
-    where: { slug },
+  // findFirst (não findUnique) porque agora filtra por status também, não só
+  // pela chave única slug — um produto pausado deve dar 404 igual um que não
+  // existe, não vazar pra quem tiver o link direto.
+  const product = await prisma.product.findFirst({
+    where: { slug, status: "ACTIVE" },
     include: { variants: true },
   });
 

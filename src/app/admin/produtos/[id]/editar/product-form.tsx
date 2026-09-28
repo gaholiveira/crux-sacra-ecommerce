@@ -27,6 +27,7 @@ type Product = {
   imageUrls: string[];
   categoryId: string | null;
   ncm: string | null;
+  status: "ACTIVE" | "PAUSED";
   variants: Variant[];
 };
 
@@ -115,6 +116,16 @@ export function EditProductForm({
           ))}
         </select>
         <FieldError messages={errors?.categoryId} />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="status" className="text-sm font-medium">
+          Status
+        </label>
+        <select id="status" name="status" className={inputClass} defaultValue={product.status}>
+          <option value="PAUSED">Pausado (não aparece na loja)</option>
+          <option value="ACTIVE">Ativo (visível na loja)</option>
+        </select>
       </div>
 
       <div className="flex flex-col gap-1.5">

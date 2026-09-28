@@ -26,6 +26,7 @@ const productSchema = z.object({
     .regex(/^\d{8}$/, "NCM deve ter 8 dígitos")
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  status: z.enum(["ACTIVE", "PAUSED"]),
 });
 
 const newVariantFields = {
@@ -105,6 +106,7 @@ export async function updateProduct(
     description: formData.get("description") || undefined,
     categoryId: formData.get("categoryId"),
     ncm: formData.get("ncm") || undefined,
+    status: formData.get("status"),
   });
 
   // Cada linha de variante já existente manda seu próprio id num hidden
@@ -217,6 +219,7 @@ export async function updateProduct(
           // oposto (campo vazio precisa conseguir apagar um NCM já salvo),
           // então normaliza pra null explicitamente.
           ncm: parsed.ncm ?? null,
+          status: parsed.status,
         },
       }),
       ...variants.map((variant) => {

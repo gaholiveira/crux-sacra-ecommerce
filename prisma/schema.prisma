@@ -46,6 +46,11 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+enum ProductStatus {
+  ACTIVE
+  PAUSED
+}
+
 // Espelha auth.users do Supabase: o `id` é o mesmo UUID gerado pelo Supabase Auth,
 // não geramos nem armazenamos senha aqui.
 model User {
@@ -115,6 +120,10 @@ model Product {
   // faturado de verdade; a emissão de nota bloqueia com mensagem clara se
   // faltar, em vez de mandar uma nota fiscal inválida.
   ncm         String?
+  // Controla se o produto aparece na loja. Produtos existentes viram ACTIVE
+  // no backfill (comportamento não muda); produtos novos nascem PAUSED — o
+  // admin ativa quando estiver pronto, em vez de ir pro ar assim que salva.
+  status      ProductStatus    @default(ACTIVE)
   category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId  String?
   variants    ProductVariant[]

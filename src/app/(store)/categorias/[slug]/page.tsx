@@ -83,7 +83,7 @@ export default async function CategoryPage({
   const category = await prisma.category.findUnique({
     where: { slug },
     include: {
-      products: { include: { variants: true } },
+      products: { where: { status: "ACTIVE" }, include: { variants: true } },
     },
   });
 

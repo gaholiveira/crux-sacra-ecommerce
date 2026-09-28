@@ -127,6 +127,19 @@ export function ProductForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
+        <label htmlFor="status" className="text-sm font-medium">
+          Status
+        </label>
+        <select id="status" name="status" className={inputClass} defaultValue="PAUSED">
+          <option value="PAUSED">Pausado (não aparece na loja)</option>
+          <option value="ACTIVE">Ativo (visível na loja)</option>
+        </select>
+        <span className="text-xs text-[#6E6255]">
+          Novo produto começa pausado — ative quando estiver pronto pra vender.
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="ncm" className="text-sm font-medium">
           NCM (opcional)
         </label>

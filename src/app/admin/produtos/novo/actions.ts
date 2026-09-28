@@ -26,6 +26,7 @@ const productSchema = z.object({
     .regex(/^\d{8}$/, "NCM deve ter 8 dígitos")
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  status: z.enum(["ACTIVE", "PAUSED"]),
 });
 
 const variantSchema = z
@@ -95,6 +96,7 @@ export async function createProduct(
     description: formData.get("description") || undefined,
     categoryId: formData.get("categoryId"),
     ncm: formData.get("ncm") || undefined,
+    status: formData.get("status"),
   });
 
   // Cada linha de variante manda sua própria key (gerada no cliente) num
@@ -151,6 +153,7 @@ export async function createProduct(
         imageUrls,
         categoryId: data.categoryId,
         ncm: data.ncm,
+        status: data.status,
         variants: {
           create: variants.map((variant) => ({
             name: variant.name,

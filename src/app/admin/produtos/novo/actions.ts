@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getSupabaseAdmin, PRODUCT_IMAGES_BUCKET } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, PRODUCT_IMAGES_BUCKET, assertValidProductImage } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/auth/dal";
 
 const productSchema = z.object({
@@ -69,6 +69,7 @@ function getConstraintIndex(error: Prisma.PrismaClientKnownRequestError): string
 }
 
 async function uploadProductImage(image: File): Promise<string> {
+  assertValidProductImage(image);
   const supabaseAdmin = getSupabaseAdmin();
   const ext = image.name.split(".").pop() ?? "jpg";
   const path = `${randomUUID()}.${ext}`;

@@ -1,5 +1,15 @@
+import { timingSafeEqual } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { applyInvoiceStatus } from "@/lib/focusnfe";
+
+// Compara em tempo constante — mesmo motivo do webhook da Mercado Pago:
+// === vaza, pelo tempo de resposta, quantos caracteres já bateram.
+function isValidSecret(received: string, expected: string): boolean {
+  const receivedBuffer = Buffer.from(received);
+  const expectedBuffer = Buffer.from(expected);
+  if (receivedBuffer.length !== expectedBuffer.length) return false;
+  return timingSafeEqual(receivedBuffer, expectedBuffer);
+}
 
 // A Focus NFe (diferente da Mercado Pago) não assina o corpo com HMAC — a
 // verificação é um segredo simples que a gente escolhe ao cadastrar o
@@ -15,7 +25,7 @@ export async function POST(request: NextRequest) {
   }
 
   const authorization = request.headers.get("authorization");
-  if (authorization !== secret) {
+  if (!authorization || !isValidSecret(authorization, secret)) {
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
 

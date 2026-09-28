@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getOrderClient, extractPaymentResult, applyPaymentResult } from "@/lib/mercadopago";
 
@@ -24,7 +24,15 @@ function isValidSignature(request: NextRequest, dataId: string, secret: string):
   const manifest = `id:${dataId};request-id:${xRequestId ?? ""};ts:${ts};`;
   const expectedHash = createHmac("sha256", secret).update(manifest).digest("hex");
 
-  return expectedHash === hash;
+  // timingSafeEqual em vez de === : compara em tempo constante, então o
+  // tempo de resposta não vaza quantos caracteres do hash já acertaram.
+  // Precisa dos dois buffers do mesmo tamanho antes de comparar, senão
+  // lança em vez de retornar false.
+  const expectedBuffer = Buffer.from(expectedHash, "hex");
+  const receivedBuffer = Buffer.from(hash, "hex");
+  if (expectedBuffer.length !== receivedBuffer.length) return false;
+
+  return timingSafeEqual(expectedBuffer, receivedBuffer);
 }
 
 export async function POST(request: NextRequest) {

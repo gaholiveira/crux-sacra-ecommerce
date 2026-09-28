@@ -29,3 +29,18 @@ export function getSupabaseAdmin(): SupabaseClient {
 }
 
 export const PRODUCT_IMAGES_BUCKET = "product-images";
+
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+
+// image.type vem do navegador — não é prova de que o arquivo é mesmo uma
+// imagem, mas evita o caso comum (alguém troca sem querer, ou o formulário
+// é usado errado) de mandar um tipo/arquivo inesperado pro Storage.
+export function assertValidProductImage(image: File): void {
+  if (!ALLOWED_IMAGE_TYPES.has(image.type)) {
+    throw new Error(`Formato de imagem não suportado: ${image.type || "desconhecido"}`);
+  }
+  if (image.size > MAX_IMAGE_BYTES) {
+    throw new Error("Imagem muito grande (máximo 5MB)");
+  }
+}

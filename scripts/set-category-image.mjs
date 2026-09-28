@@ -1,5 +1,5 @@
 // Sobe (ou troca) a foto de capa de uma categoria, mostrada no card da home.
-// Uso: node scripts/set-category-image.mjs <slug-da-categoria> <caminho-da-imagem>
+// Uso: npx tsx scripts/set-category-image.mjs <slug-da-categoria> <caminho-da-imagem>
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
@@ -13,7 +13,7 @@ const BUCKET = "product-images";
 const [, , slug, imagePath] = process.argv;
 
 if (!slug || !imagePath) {
-  console.error("Uso: node scripts/set-category-image.mjs <slug-da-categoria> <caminho-da-imagem>");
+  console.error("Uso: npx tsx scripts/set-category-image.mjs <slug-da-categoria> <caminho-da-imagem>");
   process.exit(1);
 }
 

@@ -1,5 +1,5 @@
 // Adiciona uma foto de exemplo à galeria da categoria "Personalizado".
-// Uso: node scripts/add-customization-example.mjs <caminho-da-imagem> "<legenda opcional>"
+// Uso: npx tsx scripts/add-customization-example.mjs <caminho-da-imagem> "<legenda opcional>"
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";

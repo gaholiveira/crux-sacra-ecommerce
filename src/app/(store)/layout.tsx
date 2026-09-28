@@ -26,7 +26,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   return (
     <ReactLenis root>
     <div
-      className={`${publicSans.variable} flex min-h-screen flex-col font-[family-name:var(--font-public-sans)] bg-[#E8E0D5] text-[#3A312B]`}
+      className={`${publicSans.variable} flex min-h-screen flex-col font-[family-name:var(--font-public-sans)] bg-[#F7F3EC] text-[#3A312B]`}
     >
       <Header user={user} cartCount={cartCount} />
 

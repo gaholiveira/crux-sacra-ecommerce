@@ -84,18 +84,38 @@ export default async function HomePage() {
             <Link
               key={category.id}
               href={`/categorias/${category.slug}`}
-              className="relative flex h-[140px] w-[calc(50%-0.5rem)] items-end overflow-hidden rounded-2xl bg-[#F0E6D4] md:h-[220px] md:w-[calc(25%-1.125rem)]"
+              className="flex w-[calc(50%-0.5rem)] flex-col gap-3 md:w-[calc(25%-1.125rem)]"
             >
-              {category.imageUrl && (
-                <Image
-                  src={category.imageUrl}
-                  alt={category.name}
-                  fill
-                  sizes="(min-width: 768px) 25vw, 50vw"
-                  className="object-cover"
-                />
-              )}
-              <span className="relative w-full bg-[#3A312B]/70 p-2.5 text-center text-xs font-semibold text-white md:p-3.5 md:text-sm">
+              <div className="relative h-[140px] overflow-hidden rounded-2xl bg-[#F0E6D4] md:h-[220px]">
+                {category.imageUrl ? (
+                  <Image
+                    src={category.imageUrl}
+                    alt={category.name}
+                    fill
+                    sizes="(min-width: 768px) 25vw, 50vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  // Placeholder até ter foto de verdade — a mesma cruz fina
+                  // usada como marca d'água na embalagem dos produtos,
+                  // então não destoa quando a imagem real substituir.
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#5A4738"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    className="absolute top-1/2 left-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 opacity-30 md:h-12 md:w-12"
+                  >
+                    <line x1="12" y1="3" x2="12" y2="21" />
+                    <line x1="6" y1="9" x2="18" y2="9" />
+                  </svg>
+                )}
+              </div>
+              {/* Nome fora da foto: nenhuma faixa cobrindo a imagem, e
+                  maiúsculas com letter-spacing casam com o tom elegante das
+                  próprias fotos de produto (embalagem "Crux Sacra"). */}
+              <span className="text-center text-xs font-semibold tracking-[0.08em] text-[#3A312B] uppercase md:text-sm">
                 {category.name}
               </span>
             </Link>

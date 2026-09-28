@@ -32,37 +32,22 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero com banner */}
-      <section className="relative flex h-[360px] items-center overflow-hidden bg-gradient-to-br from-[#F0E7D8] to-[#F0E6D4] md:h-[480px]">
-        <svg
-          className="absolute top-1/2 -right-16 hidden -translate-y-1/2 opacity-50 md:block"
-          width="480"
-          height="480"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#C9B18C"
-          strokeWidth="0.6"
+      {/* Hero: o lema em latim é a peça central, não uma foto — gerado em
+          código (fonts.ts) em vez de imagem, então não pesa asset extra nem
+          sai de tamanho errado em telas diferentes. */}
+      <section className="flex flex-col items-center gap-3 bg-[#F0E6D4] px-6 py-20 text-center font-[family-name:var(--font-cormorant)] md:py-28">
+        <h1 className="max-w-3xl text-[28px] leading-[1.25] font-semibold tracking-wide text-[#5A4738] uppercase md:text-[42px]">
+          Ut in omnibus glorificetur Deus
+        </h1>
+        <span className="text-xs font-medium tracking-[0.3em] text-[#5A4738] uppercase">
+          Crux Sacra
+        </span>
+        <Link
+          href="/produtos"
+          className="mt-6 w-fit rounded-lg bg-[#5A4738] px-6 py-3 font-[family-name:var(--font-public-sans)] text-sm font-semibold text-white hover:bg-[#4A3A2D] md:px-7 md:py-3.5 md:text-[15px]"
         >
-          <path d="M12 2v20M6 7h12" />
-        </svg>
-        <div className="relative flex max-w-xl flex-col gap-4 px-6 md:px-16">
-          <span className="text-xs font-semibold tracking-widest text-[#5A4738] uppercase">
-            Nova coleção
-          </span>
-          <h1 className="text-[28px] leading-[1.15] font-bold text-[#3A312B] md:text-[44px]">
-            Artigos religiosos para acompanhar sua fé
-          </h1>
-          <p className="max-w-md text-sm leading-relaxed text-[#6E6255] md:text-base">
-            Terços, crucifixos, imagens e outros objetos de devoção, selecionados com cuidado
-            para todos os momentos da sua caminhada.
-          </p>
-          <Link
-            href="/produtos"
-            className="mt-2 w-fit rounded-lg bg-[#5A4738] px-6 py-3 text-sm font-semibold text-white hover:bg-[#4A3A2D] md:px-7 md:py-3.5 md:text-[15px]"
-          >
-            Explorar produtos
-          </Link>
-        </div>
+          Explorar produtos
+        </Link>
       </section>
 
       {/* Categorias */}

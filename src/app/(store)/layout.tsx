@@ -3,7 +3,7 @@ import { ReactLenis } from "lenis/react";
 import "lenis/dist/lenis.css";
 import { getcurrentUser } from "@/lib/auth/dal";
 import { prisma } from "@/lib/prisma";
-import { publicSans } from "@/lib/fonts";
+import { publicSans, cormorant } from "@/lib/fonts";
 import { Header } from "./header";
 
 // Essa layout consulta o Prisma (carrinho e usuário atual) direto, então
@@ -26,7 +26,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   return (
     <ReactLenis root>
     <div
-      className={`${publicSans.variable} flex min-h-screen flex-col font-[family-name:var(--font-public-sans)] bg-[#F7F3EC] text-[#3A312B]`}
+      className={`${publicSans.variable} ${cormorant.variable} flex min-h-screen flex-col font-[family-name:var(--font-public-sans)] bg-[#F7F3EC] text-[#3A312B]`}
     >
       <Header user={user} cartCount={cartCount} />
 
